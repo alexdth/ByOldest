@@ -69,10 +69,8 @@ python byoldest.py
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name "ByOldest" byoldest.py
+pyinstaller --onefile --windowed --icon="ByOldest.ico" --name "ByOldest" byoldest.py
 ```
-
-The exe will be in the `dist/` folder.
 
 ---
 
@@ -179,7 +177,7 @@ python byoldest.py
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name "ByOldest" byoldest.py
+pyinstaller --onefile --windowed --icon="ByOldest.ico" --name "ByOldest" byoldest.py
 ```
 
 L'exe sera généré dans le dossier `dist/`.

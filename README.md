@@ -8,6 +8,22 @@ ByOldest is a desktop application that lists all videos from a YouTube channel (
 
 ---
 
+## Preview
+
+<div align="center">
+
+<img src="assets/screenshot-search.png" alt="ByOldest – Search interface" width="700"/>
+
+<br/><br/>
+
+<img src="assets/screenshot-results.png" alt="ByOldest – HTML results sorted oldest to newest" width="700"/>
+
+*Example: @Kurzgesagt · keyword `space` — 16 videos found, sorted from 2013 to 2026.*
+
+</div>
+
+---
+
 ## Features
 
 - 🔍 Search by YouTube channel (ID, URL or handle `@name`)
@@ -115,6 +131,22 @@ Personal, non-commercial use only. See the [LICENSE](LICENSE) file for details.
 [![Télécharger](https://img.shields.io/badge/Télécharger-ByOldest%20v1.0.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/tag/v1.0.0)
 
 ByOldest est une application de bureau qui liste toutes les vidéos d'une chaîne YouTube (ou uniquement celles correspondant à un mot-clé), triées de la plus ancienne à la plus récente, et en génère un fichier HTML interactif consultable hors ligne.
+
+---
+
+## Aperçu
+
+<div align="center">
+
+<img src="assets/screenshot-search.png" alt="ByOldest – Interface de recherche" width="700"/>
+
+<br/><br/>
+
+<img src="assets/screenshot-results.png" alt="ByOldest – Résultats HTML triés du plus ancien au plus récent" width="700"/>
+
+*Exemple : @Kurzgesagt · mot-clé `space` — 16 vidéos trouvées, triées de 2013 à 2026.*
+
+</div>
 
 ---
 

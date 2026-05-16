@@ -2,6 +2,8 @@
 
 **Sort a YouTube channel's videos — oldest to newest.**
 
+[![Download](https://img.shields.io/badge/Download-ByOldest%20v1.0.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/download/v1.0.0/ByOldest.exe)
+
 ByOldest is a desktop application that lists all videos from a YouTube channel (or only those matching a keyword), sorted from oldest to newest, and generates an interactive HTML file you can browse offline.
 
 ---
@@ -109,6 +111,8 @@ Personal, non-commercial use only. See the [LICENSE](LICENSE) file for details.
 # ByOldest *(Français)*
 
 **Trier les vidéos d'une chaîne YouTube — de la plus ancienne à la plus récente.**
+
+[![Télécharger](https://img.shields.io/badge/Télécharger-ByOldest%20v1.0.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/download/v1.0.0/ByOldest.exe)
 
 ByOldest est une application de bureau qui liste toutes les vidéos d'une chaîne YouTube (ou uniquement celles correspondant à un mot-clé), triées de la plus ancienne à la plus récente, et en génère un fichier HTML interactif consultable hors ligne.
 

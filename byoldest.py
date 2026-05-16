@@ -632,7 +632,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 a{{color:inherit;text-decoration:none}}
 .topbar{{background:var(--surf);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:10}}
 .brand{{display:flex;align-items:center;gap:10px;min-width:0}}
-.logo{{width:30px;height:30px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#07101f;flex-shrink:0}}
+.logo{{width:36px;height:36px;flex-shrink:0}}
 .brand-name{{font-size:13px;font-weight:600}}
 .brand-sub{{font-size:11px;color:var(--muted);margin-top:1px}}
 .stats{{display:flex;gap:8px;flex-shrink:0}}
@@ -677,7 +677,7 @@ footer strong{{color:var(--accent)}}
 <body>
 <div class="topbar">
   <div class="brand">
-    <div class="logo">B</div>
+    <div class="logo"><svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="11" fill="#0d1a2e"/><text x="4" y="36" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#e8f0f8">B</text><text x="26" y="36" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#00c8d7">O</text><line x1="4" y1="44" x2="48" y2="44" stroke="#00c8d7" stroke-width="3" stroke-linecap="round"/></svg></div>
     <div class="brand-info">
       <div class="brand-name">{channel_label}</div>
       <div class="brand-sub">{titre_page} &nbsp;·&nbsp; {t['html_sorted']}</div>
@@ -1600,6 +1600,7 @@ function applyState(state) {
   currentMode = state.mode;
 
   document.getElementById('api-input').value     = state.api_key || '';
+
   setMode(state.mode, false);
   applyStrings(S, state.lang);
   renderHistory(state.history);

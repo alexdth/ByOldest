@@ -1,10 +1,26 @@
 # ByOldest
 
-**Sort a YouTube channel's videos — oldest to newest.**
+**Sort a YouTube channel's videos — oldest to newest, or newest to oldest.**
 
-[![Download](https://img.shields.io/badge/Download-ByOldest%20v1.1.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/download/v1.1.0/ByOldest.exe)
+[![Download](https://img.shields.io/badge/Download-ByOldest%20v1.1.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/tag/v1.1.0)
 
 ByOldest is a desktop application that lists all videos from a YouTube channel (or only those matching a keyword), sorted from oldest to newest (or newest to oldest), and generates an interactive HTML file you can browse offline.
+
+---
+
+## Preview
+
+<div align="center">
+
+<img src="assets/screenshot-search.png" alt="ByOldest – Search interface" width="700"/>
+
+<br/><br/>
+
+<img src="assets/screenshot-results.png" alt="ByOldest – HTML results sorted oldest to newest" width="700"/>
+
+*Example: @Kurzgesagt · keyword `space` — 16 videos found, sorted from 2013 to 2026.*
+
+</div>
 
 ---
 
@@ -22,7 +38,7 @@ ByOldest is a desktop application that lists all videos from a YouTube channel (
 
 ## Usage (exe)
 
-1. Download `ByOldest.exe` from the [Releases](https://github.com/alexdth/ByOldest/releases) page
+1. Download `ByOldest.exe` from the [Releases](../../releases) page
 2. Run the exe — no installation required
 3. Enter your YouTube API key *(see below)*
 4. Enter the channel URL or ID, an optional keyword, choose the sort order, and click **Run search**
@@ -52,25 +68,25 @@ The API key is **free** and required to query YouTube. Google's free quota is mo
 
 - Python 3.9+
 
-```
+```bash
 pip install google-api-python-client keyring cryptography pywebview
 ```
 
 - Optional (Windows native notifications):
 
-```
+```bash
 pip install plyer
 ```
 
 ### Run
 
-```
+```bash
 python byoldest.py
 ```
 
 ### Build the exe yourself
 
-```
+```bash
 pip install pyinstaller
 pyinstaller --onefile --windowed --icon="ByOldest.ico" --name "ByOldest" byoldest.py
 ```
@@ -82,7 +98,7 @@ pyinstaller --onefile --windowed --icon="ByOldest.ico" --name "ByOldest" byoldes
 ByOldest fetches all videos via `playlistItems.list` (~1 quota unit/page), then enriches each result with `videos.list` (1 unit per batch of 50) to get precise `publishedAt` timestamps for reliable sorting.
 
 | Step | API method | Quota cost |
-| --- | --- | --- |
+|------|------------|------------|
 | Fetch playlist | `playlistItems.list` | ~1 unit/page |
 | Enrich timestamps | `videos.list` | ~1 unit/50 videos |
 
@@ -101,21 +117,39 @@ YouTube Data API v3 free quota: **10,000 units/day**.
 
 ## License
 
-Personal, non-commercial use only. See the [LICENSE](https://github.com/alexdth/ByOldest/blob/main/LICENSE) file for details.
+Personal, non-commercial use only. See the [LICENSE](LICENSE) file for details.
 
 © 2026 Kero — All rights reserved.
 
 ---
 
+<br>
+
 ---
 
 # ByOldest *(Français)*
 
-**Trier les vidéos d'une chaîne YouTube — de la plus ancienne à la plus récente.**
+**Trier les vidéos d'une chaîne YouTube — de la plus ancienne à la plus récente, ou l'inverse.**
 
-[![Télécharger](https://img.shields.io/badge/T%C3%A9l%C3%A9charger-ByOldest%20v1.1.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/download/v1.1.0/ByOldest.exe)
+[![Télécharger](https://img.shields.io/badge/Télécharger-ByOldest%20v1.1.0-00c8d7?style=for-the-badge&logo=windows)](https://github.com/alexdth/ByOldest/releases/tag/v1.1.0)
 
 ByOldest est une application de bureau qui liste toutes les vidéos d'une chaîne YouTube (ou uniquement celles correspondant à un mot-clé), triées de la plus ancienne à la plus récente (ou l'inverse), et en génère un fichier HTML interactif consultable hors ligne.
+
+---
+
+## Aperçu
+
+<div align="center">
+
+<img src="assets/screenshot-search.png" alt="ByOldest – Interface de recherche" width="700"/>
+
+<br/><br/>
+
+<img src="assets/screenshot-results.png" alt="ByOldest – Résultats HTML triés du plus ancien au plus récent" width="700"/>
+
+*Exemple : @Kurzgesagt · mot-clé `space` — 16 vidéos trouvées, triées de 2013 à 2026.*
+
+</div>
 
 ---
 
@@ -133,7 +167,7 @@ ByOldest est une application de bureau qui liste toutes les vidéos d'une chaîn
 
 ## Utilisation (exe)
 
-1. Télécharge `ByOldest.exe` depuis la page [Releases](https://github.com/alexdth/ByOldest/releases)
+1. Télécharge `ByOldest.exe` depuis la page [Releases](../../releases)
 2. Lance l'exe — aucune installation requise
 3. Entre ta clé API YouTube *(voir ci-dessous)*
 4. Entre l'URL ou l'ID de la chaîne, un mot-clé optionnel, choisis l'ordre, et clique sur **Lancer la recherche**
@@ -163,25 +197,25 @@ La clé API est **gratuite** et nécessaire pour interroger YouTube. Le quota gr
 
 - Python 3.9+
 
-```
+```bash
 pip install google-api-python-client keyring cryptography pywebview
 ```
 
 - Optionnel (notifications Windows natives) :
 
-```
+```bash
 pip install plyer
 ```
 
 ### Lancement
 
-```
+```bash
 python byoldest.py
 ```
 
 ### Générer l'exe soi-même
 
-```
+```bash
 pip install pyinstaller
 pyinstaller --onefile --windowed --icon="ByOldest.ico" --name "ByOldest" byoldest.py
 ```
@@ -195,7 +229,7 @@ L'exe sera généré dans le dossier `dist/`.
 ByOldest récupère toutes les vidéos via `playlistItems.list` (~1 unité de quota/page), puis enrichit chaque résultat avec `videos.list` (1 unité par lot de 50) pour obtenir des timestamps `publishedAt` précis à la seconde et trier correctement.
 
 | Étape | Méthode API | Coût quota |
-| --- | --- | --- |
+|-------|-------------|------------|
 | Récupération playlist | `playlistItems.list` | ~1 unité/page |
 | Enrichissement timestamps | `videos.list` | ~1 unité/50 vidéos |
 
@@ -214,6 +248,6 @@ Le quota gratuit de YouTube Data API v3 est de **10 000 unités/jour**.
 
 ## Licence
 
-Usage personnel et non-commercial uniquement. Voir le fichier [LICENSE](https://github.com/alexdth/ByOldest/blob/main/LICENSE) pour les détails.
+Usage personnel et non-commercial uniquement. Voir le fichier [LICENSE](LICENSE) pour les détails.
 
 © 2026 Kero — All rights reserved.

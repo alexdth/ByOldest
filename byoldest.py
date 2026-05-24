@@ -13,7 +13,7 @@ Dependencies: pip install google-api-python-client keyring cryptography pywebvie
 Optional:     pip install plyer   (Windows native notifications)
 """
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 
 import sys
 import os
@@ -22,7 +22,7 @@ import time
 import threading
 import hashlib
 
-# ── Config directory: %APPDATA%\ByOldest\ (Windows) or ~/.config/ByOldest/ ──
+
 _APPDATA = os.environ.get("APPDATA") or os.path.expanduser("~/.config")
 CONFIG_DIR      = os.path.join(_APPDATA, "ByOldest")
 CONFIG_PATH     = os.path.join(CONFIG_DIR, "byOldest_config.dat")
@@ -33,9 +33,9 @@ HISTORY_MAX = 10
 KEYRING_SERVICE = "ByOldest"
 KEYRING_USER    = "youtube_api_key"
 
-# ── Cryptography ──────────────────────────────────────────────────────────────
+
 try:
-    from cryptography.fernet import Fernet, InvalidToken
+    from cryptography.fernet import Fernet
     import base64 as _b64
     _CRYPTO_OK = True
 except ImportError:
@@ -75,7 +75,6 @@ def _decrypt(data: bytes) -> bytes:
     return Fernet(_derive_fernet_key()).decrypt(data)
 
 
-# ── Dependency check ──────────────────────────────────────────────────────────
 try:
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
@@ -133,10 +132,6 @@ def _save_api_key(key: str):
             pass
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  CONFIG
-# ══════════════════════════════════════════════════════════════════════════════
-
 def _read_config_raw() -> dict:
     os.makedirs(CONFIG_DIR, exist_ok=True)
     if os.path.exists(CONFIG_PATH_OLD) and not os.path.exists(CONFIG_PATH):
@@ -156,28 +151,24 @@ def _read_config_raw() -> dict:
     try:
         with open(CONFIG_PATH, "rb") as fh:
             raw = fh.read()
-        if _CRYPTO_OK:
-            try:
-                return json.loads(_decrypt(raw))
-            except Exception:
-                return {}
+        try:
+            return json.loads(_decrypt(raw))
+        except Exception:
+            return {}
     except Exception:
         return {}
-    # _CRYPTO_OK is guaranteed True at this point (checked at import time)
-    return {}
 
 def load_config() -> dict:
     cfg = _read_config_raw()
     cfg.setdefault("channel_history", [])
     cfg.setdefault("lang", "en")
-    cfg.setdefault("mode", "standard")
-    cfg.setdefault("open_after", True)
+    cfg.setdefault("mode", "oldest")
     cfg["api_key"] = _load_api_key()
     return cfg
 
 def save_config(cfg: dict):
     os.makedirs(CONFIG_DIR, exist_ok=True)
-    # Work on a copy so the caller's dict is never mutated
+
     api_key = cfg.get("api_key", "")
     if api_key:
         _save_api_key(api_key)
@@ -216,25 +207,20 @@ def make_output_path(channel_name: str, query: str) -> str:
     return os.path.join(HISTORY_DIR, f"{ch_part}{q_part}_{ts}.html")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  TRANSLATIONS
-# ══════════════════════════════════════════════════════════════════════════════
-
 STRINGS = {
     "fr": {
-        "app_subtitle":        "Trier les vidéos d'une chaîne — de la plus ancienne à la plus récente",
+        "app_subtitle":        "Trier les vidéos d'une chaîne YouTube",
         "lang_btn":            "🌐 English",
         "label_api":           "Clé API Google YouTube",
         "label_channel":       "ID ou URL de chaîne",
         "label_query":         "Mot-clé (vide = toutes les vidéos)",
-        "label_mode":          "Méthode",
-        "label_open_after":    "Ouvrir le HTML après génération",
+        "label_mode":          "Ordre",
         "ph_channel":          "UCxxxxx ou https://youtube.com/@NomChaine",
         "ph_query":            "ex : movie",
         "btn_run":             "Lancer la recherche",
         "btn_running":         "Recherche en cours…",
-        "mode_standard":       "Standard — titre uniquement (~1 unité/page)",
-        "mode_precise":        "Précise — index complet (100 unités/page ⚠️)",
+        "mode_oldest":         "Plus ancien → Plus récent",
+        "mode_newest":         "Plus récent → Plus ancien",
         "quota_used":          "Quota : ~{n} unités",
         "progress_label":      "{done} / {total} vidéos",
         "progress_fetching":   "Récupération…",
@@ -267,8 +253,7 @@ STRINGS = {
         "diag_no_index":       "❌ {n} vidéo(s) mais l'API n'en retourne aucune.",
         "diag_no_index2":      "   (Les vidéos récentes peuvent ne pas être indexées.)",
         "html_all_videos":     "Toutes les vidéos",
-        "html_channel":        "Chaîne",
-        "html_sorted":         "Triées de la plus ancienne à la plus récente",
+
         "html_footer":         "Généré avec ByOldest",
         "html_videos":         "vidéos",
         "html_results":        "résultats",
@@ -286,32 +271,32 @@ STRINGS = {
         "notif_done":          "{n} vidéo(s) pour « {channel} ».",
         "copy_path":           "Copier le chemin",
         "open_html":           "Ouvrir le HTML",
-        "mode_label":          "MODE",
+        "mode_label":          "ORDRE",
         "channel_label":       "CHAÎNE",
         "query_label":         "MOT-CLÉ",
         "api_label":           "CLÉ API",
-        "settings_title":      "Paramètres",
         "html_filter":         "Filtrer…",
         "html_grid":           "Grille",
         "html_list":           "Liste",
-        "html_first":          "première",
-        "html_last":           "dernière",
+        "html_sorted_oldest":  "Du plus ancien au plus récent",
+        "html_sorted_newest":  "Du plus récent au plus ancien",
+        "html_sort_toggle_oldest": "⬆ Plus ancien → Plus récent",
+        "html_sort_toggle_newest": "⬇ Plus récent → Plus ancien",
         "html_noresult":       "Aucun résultat.",
     },
     "en": {
-        "app_subtitle":        "Sort a channel's videos — oldest to newest",
+        "app_subtitle":        "Sort a YouTube channel's videos",
         "lang_btn":            "🌐 Français",
         "label_api":           "Google YouTube API Key",
         "label_channel":       "Channel ID or URL",
         "label_query":         "Keyword (empty = all videos)",
-        "label_mode":          "Method",
-        "label_open_after":    "Open HTML after generation",
+        "label_mode":          "Order",
         "ph_channel":          "UCxxxxx or https://youtube.com/@ChannelName",
         "ph_query":            "e.g. movie",
         "btn_run":             "Run search",
         "btn_running":         "Searching…",
-        "mode_standard":       "Standard — title only (~1 unit/page)",
-        "mode_precise":        "Precise — full index (100 units/page ⚠️)",
+        "mode_oldest":         "Oldest → Newest",
+        "mode_newest":         "Newest → Oldest",
         "quota_used":          "Quota: ~{n} units",
         "progress_label":      "{done} / {total} videos",
         "progress_fetching":   "Fetching…",
@@ -344,9 +329,10 @@ STRINGS = {
         "diag_no_index":       "❌ {n} video(s) but the API returns none.",
         "diag_no_index2":      "   (Very recent videos may not be indexed yet.)",
         "html_all_videos":     "All videos",
-        "html_channel":        "Channel",
-        "html_sorted":         "Sorted oldest to newest",
-        "html_footer":         "Generated with ByOldest",
+        "html_sorted_oldest":  "Sorted oldest to newest",
+        "html_sorted_newest":  "Sorted newest to oldest",
+        "html_sort_toggle_oldest": "⬆ Oldest → Newest",
+        "html_sort_toggle_newest": "⬇ Newest → Oldest",
         "html_videos":         "videos",
         "html_results":        "results",
         "html_lang":           "en",
@@ -367,20 +353,14 @@ STRINGS = {
         "channel_label":       "CHANNEL",
         "query_label":         "KEYWORD",
         "api_label":           "API KEY",
-        "settings_title":      "Settings",
         "html_filter":         "Filter…",
         "html_grid":           "Grid",
         "html_list":           "List",
-        "html_first":          "first",
-        "html_last":           "last",
         "html_noresult":       "No results.",
+        "html_footer":         "Generated with ByOldest",
     },
 }
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  API HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def api_call(request, log, t: dict, max_retries: int = 3):
     for attempt in range(1, max_retries + 1):
@@ -396,18 +376,14 @@ def api_call(request, log, t: dict, max_retries: int = 3):
                 time.sleep(2 * attempt)
             else:
                 raise
-        except Exception:
+        except Exception as e:
             if attempt < max_retries:
-                log(t["retry"].format(n=attempt))
+                log(t["retry"].format(n=attempt) + f" ({e})")
                 time.sleep(2 * attempt)
             else:
                 raise
     raise RuntimeError("Max retries exceeded")
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  BUSINESS LOGIC
-# ══════════════════════════════════════════════════════════════════════════════
 
 def resolve_and_validate_channel(api_key, channel_input, log, t, quota):
     yt = build("youtube", "v3", developerKey=api_key)
@@ -463,48 +439,13 @@ def resolve_and_validate_channel(api_key, channel_input, log, t, quota):
     return c, name
 
 
-def fetch_videos(api_key, channel_id, query, log, t, quota, progress_cb=None):
-    youtube = build("youtube", "v3", developerKey=api_key)
-    videos, next_page = [], None
-    page = 0
-    total_est = None
-
-    while True:
-        page += 1
-        log(t["page"].format(page=page))
-        res = api_call(
-            youtube.search().list(
-                part="snippet", channelId=channel_id, q=query,
-                type="video", maxResults=50, order="date", pageToken=next_page
-            ), log, t
-        )
-        quota[0] += 100
-        if total_est is None:
-            total_est = res.get("pageInfo", {}).get("totalResults", 0)
-        for item in res.get("items", []):
-            vid    = item["id"]["videoId"]
-            snip   = item["snippet"]
-            thumbs = snip["thumbnails"]
-            thumb  = (thumbs.get("high") or thumbs.get("medium") or thumbs.get("default"))["url"]
-            videos.append({
-                "title": snip["title"], "date": snip["publishedAt"][:10],
-                "published": snip["publishedAt"],
-                "url": f"https://www.youtube.com/watch?v={vid}",
-                "thumb": thumb, "channel": snip.get("channelTitle", "")
-            })
-        if progress_cb and total_est:
-            progress_cb(min(len(videos) / total_est, 1.0), len(videos), total_est)
-        next_page = res.get("nextPageToken")
-        if not next_page:
-            break
-
-    if progress_cb:
-        progress_cb(1.0, len(videos), len(videos))
-    videos.sort(key=lambda v: v["published"])
-    return videos
-
-
-def fetch_videos_efficient(api_key, channel_id, query, log, t, quota, progress_cb=None, channel_data=None):
+def fetch_videos_detailed(api_key, channel_id, query, log, t, quota, progress_cb=None, channel_data=None, cancel_flag=None):
+    """
+    Mode Détaillé : même méthode économique que Standard (playlistItems ~1u/page)
+    mais enrichit ensuite les résultats via videos.list (1u/batch de 50)
+    pour obtenir publishedAt à la seconde près et trier correctement.
+    Coût total : ~2 unités/page au lieu de 100.
+    """
     youtube = build("youtube", "v3", developerKey=api_key)
     if channel_data and "contentDetails" in channel_data:
         ch_item = channel_data
@@ -524,6 +465,7 @@ def fetch_videos_efficient(api_key, channel_id, query, log, t, quota, progress_c
     fetched = 0
     query_lower = query.lower() if query else ""
 
+
     while True:
         page += 1
         log(t["page"].format(page=page))
@@ -540,8 +482,6 @@ def fetch_videos_efficient(api_key, channel_id, query, log, t, quota, progress_c
             fetched += 1
             if title in ("Deleted video", "Private video"):
                 continue
-            if query_lower and query_lower not in title.lower():
-                continue
             rid = snip.get("resourceId", {})
             vid = rid.get("videoId", "")
             if not vid:
@@ -552,17 +492,70 @@ def fetch_videos_efficient(api_key, channel_id, query, log, t, quota, progress_c
             videos.append({
                 "title": title, "date": pub[:10], "published": pub,
                 "url": f"https://www.youtube.com/watch?v={vid}",
-                "thumb": thumb, "channel": snip.get("channelTitle", "")
+                "thumb": thumb, "channel": snip.get("channelTitle", ""),
+                "_vid_id": vid,
             })
         if progress_cb and total_est:
-            progress_cb(min(fetched / total_est, 1.0), fetched, total_est)
+            progress_cb(min(fetched / total_est, 0.8), fetched, total_est)
         next_page = res.get("nextPageToken")
         if not next_page:
             break
+        if cancel_flag and cancel_flag.is_set():
+            break
+
+
+    vid_ids = [v["_vid_id"] for v in videos]
+    pub_map = {}
+    for i in range(0, len(vid_ids), 50):
+        batch = vid_ids[i:i+50]
+        vres = api_call(
+            youtube.videos().list(part="snippet", id=",".join(batch)), log, t
+        )
+        quota[0] += 1
+        for item in vres.get("items", []):
+            pub_map[item["id"]] = {
+                "published": item["snippet"].get("publishedAt", ""),
+                "title":     item["snippet"].get("title", ""),
+            }
+
+
+    enriched = []
+    for v in videos:
+        info = pub_map.get(v["_vid_id"], {})
+        real_pub   = info.get("published", v["published"]) or v["published"]
+        real_title = info.get("title", v["title"]) or v["title"]
+        v["published"] = real_pub
+        v["date"]      = real_pub[:10]
+        v["title"]     = real_title
+        del v["_vid_id"]
+
+        if query_lower and query_lower not in real_title.lower():
+            continue
+        enriched.append(v)
+    videos = enriched
 
     if progress_cb:
-        progress_cb(1.0, fetched, fetched)
-    videos.sort(key=lambda v: v["published"])
+        progress_cb(1.0, len(videos), len(videos))
+
+    def _to_utc_ts(pub: str) -> float:
+        """Convert an ISO 8601 publishedAt string to a UTC timestamp for reliable sorting.
+        Handles both Z-suffix and ±HH:MM offset forms without any extra dependency."""
+        if not pub:
+            return 0.0
+        try:
+            from datetime import datetime, timezone
+
+            normalized = pub.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(normalized)
+
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc)
+            return dt.timestamp()
+        except Exception:
+
+            return 0.0
+
+    videos.sort(key=lambda v: _to_utc_ts(v["published"]))
     return videos
 
 
@@ -597,23 +590,28 @@ def diagnose_empty_results(api_key, channel_id, query, log, t):
         log(t["diag_no_index2"])
 
 
-def generate_html(videos, query, channel_id, output_path, log, t):
+def generate_html(videos, query, channel_id, output_path, log, t, mode="oldest"):
     titre_page    = query if query else t["html_all_videos"]
     channel_label = videos[0]["channel"] if videos else channel_id
-    year_first    = videos[0]["date"][:4]  if videos else ""
-    year_last     = videos[-1]["date"][:4] if videos else ""
+
 
     js_videos = json.dumps([
         {"n": i, "title": v["title"], "date": v["date"], "url": v["url"], "thumb": v["thumb"]}
         for i, v in enumerate(videos, 1)
     ], ensure_ascii=False)
 
-    lbl_filter   = t["html_filter"]
-    lbl_grid     = t["html_grid"]
-    lbl_list     = t["html_list"]
-    lbl_first    = t["html_first"]
-    lbl_last     = t["html_last"]
-    lbl_noresult = t["html_noresult"]
+    lbl_filter          = t["html_filter"]
+    lbl_grid            = t["html_grid"]
+    lbl_list            = t["html_list"]
+    lbl_noresult        = t["html_noresult"]
+    lbl_sorted_oldest   = t["html_sorted_oldest"]
+    lbl_sorted_newest   = t["html_sorted_newest"]
+    lbl_toggle_oldest   = t["html_sort_toggle_oldest"]
+    lbl_toggle_newest   = t["html_sort_toggle_newest"]
+    lbl_videos          = t["html_videos"]
+    lbl_results         = t["html_results"]
+    lbl_footer          = t["html_footer"]
+    total               = len(videos)
 
     html = f"""<!DOCTYPE html>
 <html lang="{t['html_lang']}">
@@ -624,7 +622,7 @@ def generate_html(videos, query, channel_id, output_path, log, t):
 <style>
 :root{{
   --bg:#07101f;--surf:#0d1a2e;--surf2:#102038;--border:#111f33;
-  --accent:#00c8d7;--text:#f0f4f8;--muted:#4a6a80;
+  --accent:#00c8d7;--accent2:#00e5b0;--text:#f0f4f8;--muted:#4a6a80;
   --radius:10px;--radius-sm:6px;
 }}
 *{{box-sizing:border-box;margin:0;padding:0}}
@@ -634,12 +632,29 @@ a{{color:inherit;text-decoration:none}}
 .brand{{display:flex;align-items:center;gap:10px;min-width:0}}
 .logo{{width:36px;height:36px;flex-shrink:0}}
 .brand-name{{font-size:13px;font-weight:600}}
-.brand-sub{{font-size:11px;color:var(--muted);margin-top:1px}}
-.stats{{display:flex;gap:8px;flex-shrink:0}}
-.stat{{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;text-align:center;min-width:58px}}
-.stat-n{{font-size:16px;font-weight:600;line-height:1}}
-.stat-n.accent{{color:var(--accent)}}
+.brand-sub{{font-size:11px;color:var(--muted);margin-top:1px;transition:color .2s}}
+.brand-sub.newest{{color:var(--accent2)}}
+.topbar-center{{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center}}
+.topbar-right{{display:flex;align-items:center;gap:10px;flex-shrink:0}}
+.stat{{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 14px;text-align:center}}
+.stat-n{{font-size:16px;font-weight:600;line-height:1;color:var(--accent)}}
 .stat-l{{font-size:10px;color:var(--muted);margin-top:2px}}
+.sort-btn{{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 16px;
+  border-radius:var(--radius-sm);
+  border:1.5px solid var(--accent);
+  background:rgba(0,200,215,.1);
+  color:var(--accent);
+  font-size:12px;font-weight:700;
+  cursor:pointer;
+  transition:all .18s;
+  white-space:nowrap;
+}}
+.sort-btn:hover{{background:rgba(0,200,215,.2);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,200,215,.15)}}
+.sort-btn.newest{{border-color:var(--accent2);background:rgba(0,229,176,.1);color:var(--accent2)}}
+.sort-btn.newest:hover{{background:rgba(0,229,176,.2);box-shadow:0 4px 14px rgba(0,229,176,.15)}}
+.sort-arrow{{font-size:15px;transition:transform .3s}}
 .toolbar{{max-width:1400px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:10px}}
 .search-wrap{{flex:1;position:relative}}
 .search-wrap svg{{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}}
@@ -679,14 +694,18 @@ footer strong{{color:var(--accent)}}
   <div class="brand">
     <div class="logo"><svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" rx="11" fill="#0d1a2e"/><text x="4" y="36" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#e8f0f8">B</text><text x="26" y="36" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#00c8d7">O</text><line x1="4" y1="44" x2="48" y2="44" stroke="#00c8d7" stroke-width="3" stroke-linecap="round"/></svg></div>
     <div class="brand-info">
-      <div class="brand-name">{channel_label}</div>
-      <div class="brand-sub">{titre_page} &nbsp;·&nbsp; {t['html_sorted']}</div>
+      <div class="brand-name">{channel_label} &nbsp;·&nbsp; {titre_page}</div>
+      <div class="brand-sub" id="sort-label">{lbl_sorted_oldest}</div>
     </div>
   </div>
-  <div class="stats">
-    <div class="stat"><div class="stat-n accent" id="stat-count">{len(videos)}</div><div class="stat-l">{t['html_videos']}</div></div>
-    <div class="stat"><div class="stat-n">{year_first}</div><div class="stat-l">{lbl_first}</div></div>
-    <div class="stat"><div class="stat-n">{year_last}</div><div class="stat-l">{lbl_last}</div></div>
+  <div class="topbar-center">
+    <button class="sort-btn" id="sort-toggle-btn" onclick="toggleSort()">
+      <span class="sort-arrow" id="sort-arrow">⬆</span>
+      <span id="sort-toggle-lbl">{lbl_toggle_newest}</span>
+    </button>
+  </div>
+  <div class="topbar-right">
+    <div class="stat"><div class="stat-n">{total}</div><div class="stat-l">{lbl_videos}</div></div>
   </div>
 </div>
 <div class="toolbar">
@@ -694,7 +713,7 @@ footer strong{{color:var(--accent)}}
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="filter-input" type="search" placeholder="{lbl_filter}" autocomplete="off" spellcheck="false">
   </div>
-  <span class="counter" id="counter">{len(videos)} {t['html_results']}</span>
+  <span class="counter" id="counter">{total} {lbl_results}</span>
   <div class="view-btns">
     <button class="vbtn on" id="btn-grid" onclick="setView('grid')">{lbl_grid}</button>
     <button class="vbtn" id="btn-list" onclick="setView('list')">{lbl_list}</button>
@@ -705,15 +724,30 @@ footer strong{{color:var(--accent)}}
   <div id="list-view"></div>
   <div id="empty">{lbl_noresult}</div>
 </div>
-<footer>{t['html_footer']} &nbsp;·&nbsp; <strong>{len(videos)}</strong> {t['html_results']}</footer>
+<footer>{lbl_footer} &nbsp;·&nbsp; <strong>{total}</strong> {lbl_results} &nbsp;·&nbsp; <span style="opacity:.45">© Kero 2026</span></footer>
 <script>
-const DATA = {js_videos};
-let currentView = 'grid';
+const DATA_ASC = {js_videos};
+let currentView    = 'grid';
+let currentOrder   = {json.dumps(mode)};
+const LBL_SORTED_OLDEST   = {json.dumps(lbl_sorted_oldest)};
+const LBL_SORTED_NEWEST   = {json.dumps(lbl_sorted_newest)};
+const LBL_TOGGLE_OLDEST   = {json.dumps(lbl_toggle_oldest)};
+const LBL_TOGGLE_NEWEST   = {json.dumps(lbl_toggle_newest)};
+const LBL_RESULTS         = {json.dumps(lbl_results)};
+
 function esc(s){{return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}}
+
+function getItems(filterQ){{
+  let items = currentOrder === 'oldest' ? [...DATA_ASC] : [...DATA_ASC].reverse();
+  if (filterQ) items = items.filter(v => v.title.toLowerCase().includes(filterQ));
+
+  return items.map((v, i) => ({{...v, n: i + 1}}));
+}}
+
 function renderGrid(items){{
   document.getElementById('grid-view').innerHTML = items.map(v=>`
     <div class="card" onclick="window.open('${{v.url}}','_blank')">
-      <div class="card-thumb"><img src="${{v.thumb}}" loading="lazy" alt=""><span class="num-badge">#${{v.n}}</span></div>
+      <div class="card-thumb"><img src="${{v.thumb}}" loading="lazy" alt="" onerror="this.style.display='none'"><span class="num-badge">#${{v.n}}</span></div>
       <div class="card-body"><div class="card-title">${{esc(v.title)}}</div><div class="card-date">${{v.date}}</div></div>
     </div>`).join('');
 }}
@@ -721,52 +755,80 @@ function renderList(items){{
   document.getElementById('list-view').innerHTML = items.map(v=>`
     <div class="row" onclick="window.open('${{v.url}}','_blank')">
       <span class="row-num">#${{v.n}}</span>
-      <div class="row-thumb"><img src="${{v.thumb}}" loading="lazy" alt=""></div>
+      <div class="row-thumb"><img src="${{v.thumb}}" loading="lazy" alt="" onerror="this.style.display='none'"></div>
       <span class="row-title">${{esc(v.title)}}</span>
       <span class="row-date">${{v.date}}</span>
     </div>`).join('');
 }}
+
 function setView(v){{
-  currentView=v;
-  document.getElementById('grid-view').style.display=v==='grid'?'grid':'none';
-  document.getElementById('list-view').style.display=v==='list'?'flex':'none';
-  document.getElementById('btn-grid').className='vbtn'+(v==='grid'?' on':'');
-  document.getElementById('btn-list').className='vbtn'+(v==='list'?' on':'');
+  currentView = v;
+  document.getElementById('btn-grid').className = 'vbtn' + (v==='grid' ? ' on' : '');
+  document.getElementById('btn-list').className = 'vbtn' + (v==='list' ? ' on' : '');
   applyFilter();
 }}
+
 function applyFilter(){{
-  const q=document.getElementById('filter-input').value.toLowerCase().trim();
-  const items=q?DATA.filter(v=>v.title.toLowerCase().includes(q)):DATA;
-  renderGrid(items);renderList(items);
-  document.getElementById('counter').textContent=items.length+' {t['html_results']}';
-  document.getElementById('empty').style.display=items.length?'none':'block';
-  document.getElementById('grid-view').style.display=(currentView==='grid'&&items.length)?'grid':'none';
-  document.getElementById('list-view').style.display=(currentView==='list'&&items.length)?'flex':'none';
+  const q     = document.getElementById('filter-input').value.toLowerCase().trim();
+  const items = getItems(q);
+  renderGrid(items);
+  renderList(items);
+  document.getElementById('counter').textContent = items.length + ' ' + LBL_RESULTS;
+  document.getElementById('empty').style.display = items.length ? 'none' : 'block';
+  document.getElementById('grid-view').style.display = (currentView==='grid' && items.length) ? 'grid' : 'none';
+  document.getElementById('list-view').style.display = (currentView==='list' && items.length) ? 'flex' : 'none';
 }}
-document.getElementById('filter-input').addEventListener('input',applyFilter);
+
+function toggleSort(){{
+  currentOrder = currentOrder === 'oldest' ? 'newest' : 'oldest';
+  const isNewest = currentOrder === 'newest';
+
+  const btn = document.getElementById('sort-toggle-btn');
+  btn.className = 'sort-btn' + (isNewest ? ' newest' : '');
+  document.getElementById('sort-arrow').textContent  = isNewest ? '⬇' : '⬆';
+  document.getElementById('sort-toggle-lbl').textContent = isNewest ? LBL_TOGGLE_OLDEST : LBL_TOGGLE_NEWEST;
+
+  const lbl = document.getElementById('sort-label');
+  lbl.textContent = isNewest ? LBL_SORTED_NEWEST : LBL_SORTED_OLDEST;
+  lbl.className   = 'brand-sub' + (isNewest ? ' newest' : '');
+  applyFilter();
+}}
+
+document.getElementById('filter-input').addEventListener('input', applyFilter);
+
+if (currentOrder === 'newest') {{
+  const btn = document.getElementById('sort-toggle-btn');
+  btn.className = 'sort-btn newest';
+  document.getElementById('sort-arrow').textContent = '⬇';
+  document.getElementById('sort-toggle-lbl').textContent = LBL_TOGGLE_OLDEST;
+  const lbl = document.getElementById('sort-label');
+  lbl.textContent = LBL_SORTED_NEWEST;
+  lbl.className = 'brand-sub newest';
+}}
 applyFilter();
 </script>
 </body>
 </html>"""
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(html)
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html)
+    except OSError as e:
+        log(f"❌ Cannot write HTML file: {e}")
+        raise
     log(t["html_saved"].format(path=output_path))
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  PYWEBVIEW API  (the bridge between JS and Python)
-# ══════════════════════════════════════════════════════════════════════════════
 
 class ByOldestApi:
     """All methods callable from JavaScript via pywebview.api.*"""
 
     def __init__(self):
-        self._cfg     = load_config()
-        self._lang    = self._cfg.get("lang", "en")
-        self._running = False
+        self._cfg          = load_config()
+        self._lang         = self._cfg.get("lang", "en")
+        self._running      = False
+        self._cancel_flag  = threading.Event()   # set() to request cancellation
         self._last_output_path = None
-        self._window  = None   # set after window creation
+        self._window       = None   # set after window creation
 
     def _t(self, key: str, **kwargs) -> str:
         s = STRINGS[self._lang].get(key, key)
@@ -778,8 +840,8 @@ class ByOldestApi:
             self._window.evaluate_js(js)
 
     def _log(self, msg: str):
-        # json.dumps produces a quoted, fully-escaped JS string literal —
-        # immune to template-literal injection (${...}, backticks, backslashes…)
+
+
         self._js(f"appendLog({json.dumps(msg)})")
 
     def _set_progress(self, value: float, done: int = 0, total: int = 0):
@@ -791,30 +853,30 @@ class ByOldestApi:
         pct = int(value * 100)
         self._js(f"setProgress({pct}, {json.dumps(label)})")
 
-    # ── Called by JS on startup ───────────────────────────────────────────────
+
     def get_initial_state(self):
         """Return config + translations for the current language."""
         t = STRINGS[self._lang]
         history = self._cfg.get("channel_history", [])
         return {
-            "lang":        self._lang,
-            "api_key":     self._cfg.get("api_key", ""),
-            "mode":        self._cfg.get("mode", "standard"),
-            "strings":     t,
-            "history":     history,
-            "version":     APP_VERSION,
+            "lang":    self._lang,
+            "api_key": self._cfg.get("api_key", ""),
+            "mode":    self._cfg.get("mode", "oldest"),
+            "strings": t,
+            "history": history,
+            "version": APP_VERSION,
         }
 
     def toggle_lang(self):
         self._lang = "en" if self._lang == "fr" else "fr"
         self._cfg["lang"] = self._lang
         save_config(self._cfg)
-        # Return fresh state so JS can re-render everything
+
         return self.get_initial_state()
 
     def save_settings(self, api_key: str, mode: str):
-        self._cfg["api_key"]    = api_key.strip()
-        self._cfg["mode"]       = mode
+        self._cfg["api_key"] = api_key.strip()
+        self._cfg["mode"]    = mode
         save_config(self._cfg)
         return True
 
@@ -843,26 +905,42 @@ class ByOldestApi:
         return False
 
     def copy_to_clipboard(self, text: str):
+
+
+        try:
+            import pyperclip
+            pyperclip.copy(text)
+            return True
+        except ImportError:
+            pass
+        except Exception:
+            pass
+
         try:
             import subprocess
-            # Try pyperclip first, fall back to platform methods
-            try:
-                import pyperclip
-                pyperclip.copy(text)
-                return True
-            except ImportError:
-                pass
             if sys.platform == "win32":
-                subprocess.run(["clip"], input=text.encode("utf-16"), check=True)
+                subprocess.run(["clip"], input=text.encode("utf-16-le"), check=True)
+                return True
             elif sys.platform == "darwin":
-                subprocess.run(["pbcopy"], input=text.encode(), check=True)
+                subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
+                return True
             else:
-                subprocess.run(["xclip", "-selection", "clipboard"], input=text.encode(), check=True)
-            return True
-        except Exception:
-            return False
 
-    # ── Main search ───────────────────────────────────────────────────────────
+                for cmd in (
+                    ["xclip", "-selection", "clipboard"],
+                    ["xsel", "--clipboard", "--input"],
+                    ["wl-copy"],
+                ):
+                    try:
+                        subprocess.run(cmd, input=text.encode("utf-8"), check=True)
+                        return True
+                    except (FileNotFoundError, subprocess.CalledProcessError):
+                        continue
+        except Exception:
+            pass
+        return False
+
+
     def start_search(self, api_key: str, channel: str, query: str, mode: str):
         if self._running:
             return False
@@ -877,13 +955,14 @@ class ByOldestApi:
         if not channel:
             self._log(self._t("err_no_channel"))
             return False
-        if mode not in ("standard", "precise"):
-            mode = "standard"
+        if mode not in ("oldest", "newest"):
+            mode = "oldest"
 
         self._cfg["api_key"] = api_key
         self._cfg["mode"]    = mode
         save_config(self._cfg)
 
+        self._cancel_flag.clear()
         self._running = True
         self._js("setRunning(true)")
         self._js("clearLog()")
@@ -894,6 +973,12 @@ class ByOldestApi:
             args=(api_key, channel, query, mode),
             daemon=True
         ).start()
+        return True
+
+    def cancel_search(self):
+        """Called from JS to request cancellation of the running search."""
+        if self._running:
+            self._cancel_flag.set()
         return True
 
     def _run_search(self, api_key, channel, query, mode):
@@ -908,16 +993,27 @@ class ByOldestApi:
             channel_id, channel_name = resolve_and_validate_channel(
                 api_key, channel, self._log, t, quota
             )
+            if self._cancel_flag.is_set():
+                self._log("⚠️ Search cancelled.")
+                return
             self._js(f"setQuota({quota[0]})")
 
             self._log(t["searching"].format(
                 query=query or t["searching_all"], channel_id=channel_id
             ))
 
-            if mode == "precise":
-                videos = fetch_videos(api_key, channel_id, query, self._log, t, quota, on_progress)
-            else:
-                videos = fetch_videos_efficient(api_key, channel_id, query, self._log, t, quota, on_progress)
+            videos = fetch_videos_detailed(
+                api_key, channel_id, query, self._log, t, quota, on_progress,
+                cancel_flag=self._cancel_flag,
+            )
+
+            if self._cancel_flag.is_set():
+                self._log("⚠️ Search cancelled.")
+                return
+
+
+            if mode == "newest":
+                videos = list(reversed(videos))
 
             self._js(f"setQuota({quota[0]})")
             self._log(t["found"].format(n=len(videos)))
@@ -928,7 +1024,7 @@ class ByOldestApi:
                 return
 
             output = make_output_path(channel_name, query)
-            generate_html(videos, query, channel_id, output, self._log, t)
+            generate_html(videos, query, channel_id, output, self._log, t, mode)
             self._log(t["done"])
 
             add_to_history(self._cfg, channel, query, mode, output)
@@ -937,17 +1033,16 @@ class ByOldestApi:
 
             self._last_output_path = output
 
-            # Pass result to JS — json.dumps ensures safe string serialization
+
             self._js(f"onSearchDone({json.dumps(output)}, {json.dumps(channel_name)}, {len(videos)})")
 
             _notify(t["notif_title"], t["notif_done"].format(n=len(videos), channel=channel_name))
 
-            if self._cfg.get("open_after", True):
-                try:
-                    import webbrowser
-                    webbrowser.open(os.path.abspath(output))
-                except Exception:
-                    pass
+            try:
+                import webbrowser
+                webbrowser.open(os.path.abspath(output))
+            except Exception:
+                pass
 
         except Exception as e:
             self._log(t["err_generic"].format(e=e))
@@ -957,10 +1052,6 @@ class ByOldestApi:
             self._running = False
             self._js("setRunning(false)")
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  HTML UI
-# ══════════════════════════════════════════════════════════════════════════════
 
 UI_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -1102,7 +1193,7 @@ UI_HTML = """<!DOCTYPE html>
   }
 
   .search-panel-top {
-    flex-shrink: 0;
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -1184,39 +1275,6 @@ UI_HTML = """<!DOCTYPE html>
   .mode-btn.active { border-color: var(--accent); background: rgba(0,200,215,.08); color: var(--accent); }
   .mode-btn.active .mode-desc { opacity: 1; }
 
-  /* ── Toggle ── */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .toggle-label { font-size: 13px; font-weight: 600; }
-  .toggle {
-    position: relative;
-    width: 36px; height: 20px;
-    flex-shrink: 0;
-  }
-  .toggle input { opacity: 0; width: 0; height: 0; }
-  .toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--border);
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background .2s;
-  }
-  .toggle-slider::before {
-    content: '';
-    position: absolute;
-    width: 14px; height: 14px;
-    left: 3px; top: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: transform .2s;
-  }
-  input:checked + .toggle-slider { background: var(--accent); }
-  input:checked + .toggle-slider::before { transform: translateX(16px); }
 
   /* ── Run button ── */
   .run-btn {
@@ -1249,6 +1307,22 @@ UI_HTML = """<!DOCTYPE html>
     transform: none;
     box-shadow: none;
   }
+
+  .cancel-btn {
+    margin: -8px 20px 16px;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    transition: all .15s;
+    width: calc(100% - 40px);
+  }
+  .cancel-btn:hover { background: rgba(255,58,58,.1); }
   .run-btn .spinner {
     width: 14px; height: 14px;
     border: 2px solid rgba(0,0,0,.3);
@@ -1456,12 +1530,6 @@ UI_HTML = """<!DOCTYPE html>
   }
   .history-empty .empty-icon { font-size: 32px; margin-bottom: 10px; }
 
-  /* ── Settings panel ── */
-  .settings-panel {
-    padding: 20px;
-    max-width: 480px;
-  }
-  .settings-title { font-size: 14px; font-weight: 800; margin-bottom: 16px; }
 
   /* ── Responsive: hide right panel on narrow ── */
   @media (max-width: 700px) {
@@ -1488,6 +1556,7 @@ UI_HTML = """<!DOCTYPE html>
   </div>
   <div class="header-actions">
     <div class="quota-badge" id="quota-badge">Quota: 0</div>
+    <span style="font-size:10px;color:var(--muted);opacity:.5;font-family:var(--font-mono);flex-shrink:0">© Kero 2026</span>
     <button class="btn-icon" onclick="toggleLang()" id="lang-btn">🌐 Français</button>
   </div>
 </div>
@@ -1525,15 +1594,15 @@ UI_HTML = """<!DOCTYPE html>
     </div>
 
     <div class="panel-section">
-      <div class="field-label" id="lbl-mode">MODE</div>
+      <div class="field-label" id="lbl-mode">ORDER</div>
       <div class="mode-selector">
-        <button class="mode-btn active" id="btn-standard" onclick="setMode('standard')">
-          <span class="mode-name">Standard</span>
-          <span class="mode-desc">~1 unit/page</span>
+        <button class="mode-btn active" id="btn-oldest" onclick="setMode('oldest')">
+          <span class="mode-name">⬆ Oldest → Newest</span>
+          <span class="mode-desc">chronological</span>
         </button>
-        <button class="mode-btn" id="btn-precise" onclick="setMode('precise')">
-          <span class="mode-name">Precise ⚠️</span>
-          <span class="mode-desc">100 units/page</span>
+        <button class="mode-btn" id="btn-newest" onclick="setMode('newest')">
+          <span class="mode-name">⬇ Newest → Oldest</span>
+          <span class="mode-desc">reverse order</span>
         </button>
       </div>
     </div>
@@ -1542,6 +1611,7 @@ UI_HTML = """<!DOCTYPE html>
       <div class="spinner"></div>
       <span id="run-label">▶  Run search</span>
     </button>
+    <button class="cancel-btn" id="cancel-btn" onclick="cancelSearch()" style="display:none">✕  Cancel</button>
 
     <!-- Progress -->
     <div class="progress-wrap">
@@ -1583,13 +1653,13 @@ UI_HTML = """<!DOCTYPE html>
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
+
 let S = {};  // strings
-let currentMode = 'standard';
+let currentMode = 'oldest';
 let lastOutputPath = '';
 let currentTab = 'search';
 
-// ── Init ──────────────────────────────────────────────────────────────────
+
 window.addEventListener('pywebviewready', async () => {
   const state = await pywebview.api.get_initial_state();
   applyState(state);
@@ -1599,7 +1669,7 @@ function applyState(state) {
   S = state.strings;
   currentMode = state.mode;
 
-  document.getElementById('api-input').value     = state.api_key || '';
+  document.getElementById('api-input').value = state.api_key || '';
 
   setMode(state.mode, false);
   applyStrings(S, state.lang);
@@ -1622,12 +1692,12 @@ function applyStrings(t, lang) {
   document.getElementById('btn-copy-path').textContent  = t.copy_path || 'Copy path';
   document.getElementById('channel-input').placeholder  = t.ph_channel;
   document.getElementById('query-input').placeholder    = t.ph_query + '  (' + (t.label_query || '') + ')';
-  document.querySelector('#btn-standard .mode-name').textContent = 'Standard';
-  document.querySelector('#btn-precise .mode-name').textContent  = 'Precise ⚠️';
-  document.lang = lang;
+  document.querySelector('#btn-oldest .mode-name').textContent = (t.mode_oldest || '⬆ Oldest → Newest');
+  document.querySelector('#btn-newest .mode-name').textContent = (t.mode_newest || '⬇ Newest → Oldest');
+  document.documentElement.lang = lang;
 }
 
-// ── Tab switching ──────────────────────────────────────────────────────────
+
 function switchTab(name) {
   currentTab = name;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1637,21 +1707,21 @@ function switchTab(name) {
   if (name === 'history') refreshHistory();
 }
 
-// ── Language ───────────────────────────────────────────────────────────────
+
 async function toggleLang() {
   const state = await pywebview.api.toggle_lang();
   applyState(state);
 }
 
-// ── Mode ──────────────────────────────────────────────────────────────────
+
 function setMode(mode, save = true) {
   currentMode = mode;
-  document.getElementById('btn-standard').classList.toggle('active', mode === 'standard');
-  document.getElementById('btn-precise').classList.toggle('active',  mode === 'precise');
+  document.getElementById('btn-oldest').classList.toggle('active', mode === 'oldest');
+  document.getElementById('btn-newest').classList.toggle('active', mode === 'newest');
   if (save) saveSettings();
 }
 
-// ── Settings autosave ──────────────────────────────────────────────────────
+
 function saveSettings() {
   const api = document.getElementById('api-input').value;
   pywebview.api.save_settings(api, currentMode);
@@ -1660,13 +1730,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('api-input').addEventListener('blur', saveSettings);
 });
 
-// ── Eye toggle ────────────────────────────────────────────────────────────
+
 function toggleEye() {
   const el = document.getElementById('api-input');
   el.type = el.type === 'password' ? 'text' : 'password';
 }
 
-// ── Log ───────────────────────────────────────────────────────────────────
+
 function clearLog() {
   document.getElementById('log-area').innerHTML = '';
 }
@@ -1683,31 +1753,37 @@ function appendLog(msg) {
   area.scrollTop = area.scrollHeight;
 }
 
-// ── Progress ──────────────────────────────────────────────────────────────
+
 function setProgress(pct, label) {
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('progress-label').textContent = label || '';
 }
 
-// ── Quota ─────────────────────────────────────────────────────────────────
+
 function setQuota(n) {
   const t = S.quota_used || 'Quota: ~{n} units';
   document.getElementById('quota-badge').textContent = t.replace('{n}', n);
 }
 
-// ── Running state ─────────────────────────────────────────────────────────
+
 function setRunning(running) {
   const btn = document.getElementById('run-btn');
   const lbl = document.getElementById('run-label');
+  const cancelBtn = document.getElementById('cancel-btn');
   btn.disabled = running;
   btn.classList.toggle('loading', running);
   lbl.textContent = running ? (S.btn_running || 'Searching…') : ('▶  ' + (S.btn_run || 'Run search'));
+  cancelBtn.style.display = running ? 'block' : 'none';
   if (!running) {
     document.getElementById('result-banner').classList.remove('visible');
   }
 }
 
-// ── Search done callback ──────────────────────────────────────────────────
+async function cancelSearch() {
+  await pywebview.api.cancel_search();
+}
+
+
 function onSearchDone(path, channelName, count) {
   lastOutputPath = path;
   const banner = document.getElementById('result-banner');
@@ -1715,7 +1791,6 @@ function onSearchDone(path, channelName, count) {
   title.textContent = '🎉 ' + count + ' video' + (count > 1 ? 's' : '') + ' — ' + channelName;
   banner.classList.add('visible');
   refreshHistory();
-  if (currentTab === 'history') renderHistoryFromApi();
 }
 
 async function openResult() {
@@ -1732,7 +1807,7 @@ async function copyPath() {
   }
 }
 
-// ── Run search ────────────────────────────────────────────────────────────
+
 async function runSearch() {
   const api     = document.getElementById('api-input').value.trim();
   const channel = document.getElementById('channel-input').value.trim();
@@ -1744,14 +1819,14 @@ async function runSearch() {
   await pywebview.api.start_search(api, channel, query, currentMode);
 }
 
-// Enter key on inputs triggers search
+
 ['channel-input', 'query-input'].forEach(id => {
   document.getElementById(id)?.addEventListener('keydown', e => {
     if (e.key === 'Enter') runSearch();
   });
 });
 
-// ── History ───────────────────────────────────────────────────────────────
+
 async function refreshHistory() {
   const hist = await pywebview.api.get_history();
   renderHistory(hist);
@@ -1767,13 +1842,13 @@ function renderHistory(hist) {
   list.innerHTML = hist.map(e => {
     const ch    = typeof e === 'string' ? e : (e.channel || '');
     const q     = typeof e === 'object' ? (e.query || '') : '';
-    const mode  = typeof e === 'object' ? (e.mode  || 'standard') : 'standard';
+    const mode  = typeof e === 'object' ? (e.mode  || 'oldest') : 'oldest';
     const path  = typeof e === 'object' ? (e.html_path || '') : '';
-    const isPrecise = mode === 'precise';
+    const isNewest = mode === 'newest';
     const queryStr  = q ? q : (S.label_query || 'all videos');
-    const modeBadge = isPrecise
-      ? `<span class="hcard-badge precise">Precise</span>`
-      : `<span class="hcard-badge">Standard</span>`;
+    const modeBadge = isNewest
+      ? `<span class="hcard-badge precise">⬇ Newest → Oldest</span>`
+      : `<span class="hcard-badge">⬆ Oldest → Newest</span>`;
     const viewBtn = path
       ? `<button class="hcard-btn view" onclick='openHistoryHtml(${JSON.stringify(path)})'>${S.history_open_html || 'View'}</button>`
       : '';
@@ -1793,10 +1868,6 @@ function renderHistory(hist) {
   }).join('');
 }
 
-async function renderHistoryFromApi() {
-  const hist = await pywebview.api.get_history();
-  renderHistory(hist);
-}
 
 async function openHistoryHtml(path) {
   const ok = await pywebview.api.open_html_file(path);
@@ -1821,7 +1892,7 @@ function rerun(channel, query, mode) {
   runSearch();
 }
 
-// ── Utils ─────────────────────────────────────────────────────────────────
+
 function esc(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -1831,10 +1902,6 @@ function esc(s) {
 </body>
 </html>"""
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  ENTRY POINT
-# ══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     api = ByOldestApi()
